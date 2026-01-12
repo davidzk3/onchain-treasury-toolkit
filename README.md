@@ -1,4 +1,3 @@
-```md
 # Onchain Treasury Toolkit
 
 A production-style on-chain treasury manager plus off-chain ops toolkit demonstrating secure ETH and ERC20 custody, Safe-friendly ownership, and operational monitoring workflows.
@@ -139,4 +138,3 @@ It is intentionally scoped to be auditable, extensible, and operationally realis
 
 ## Disclaimer
 This repository is for demonstration and educational purposes only. It has not been audited and should not be used in production without proper security review.
-```
