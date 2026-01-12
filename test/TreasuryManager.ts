@@ -39,11 +39,6 @@ describe("TreasuryManager", function () {
       value: ethers.utils.parseEther("1.0"),
     });
 
-    // If your contract uses custom errors, this is nicer:
-    // await expect(treasury.connect(attacker).withdrawETH(attacker.address, ethers.utils.parseEther("0.1")))
-    //   .to.be.revertedWithCustomError(treasury, "NotOwner");
-
-    // Generic revert is fine too:
     await expect(
       treasury.connect(attacker).withdrawETH(attacker.address, ethers.utils.parseEther("0.1"))
     ).to.be.reverted;
@@ -105,13 +100,39 @@ describe("TreasuryManager", function () {
     await token.mint(owner.address, ethers.utils.parseUnits("100", 18));
     await token.transfer(treasury.address, ethers.utils.parseUnits("10", 18));
 
-    // If you want the strongest signal and your custom error name is NotOwner:
-    // await expect(
-    //   treasury.connect(attacker).withdrawToken(token.address, attacker.address, ethers.utils.parseUnits("1", 18))
-    // ).to.be.revertedWithCustomError(treasury, "NotOwner");
-
     await expect(
       treasury.connect(attacker).withdrawToken(token.address, attacker.address, ethers.utils.parseUnits("1", 18))
     ).to.be.reverted;
+  });
+
+  it("supports two-step ownership transfer (Safe-friendly)", async function () {
+    const [owner, newOwner] = await ethers.getSigners();
+
+    const Factory = await ethers.getContractFactory("TreasuryManager");
+    const treasury = await Factory.deploy();
+    await treasury.deployed();
+
+    // Owner proposes a new owner (e.g. a Safe)
+    await treasury.transferOwnership(newOwner.address);
+    expect(await treasury.pendingOwner()).to.equal(newOwner.address);
+
+    // New owner accepts ownership
+    await treasury.connect(newOwner).acceptOwnership();
+    expect(await treasury.owner()).to.equal(newOwner.address);
+    expect(await treasury.pendingOwner()).to.equal(ethers.constants.AddressZero);
+  });
+
+  it("prevents non-pending owner from accepting ownership", async function () {
+    const [owner, newOwner, attacker] = await ethers.getSigners();
+
+    const Factory = await ethers.getContractFactory("TreasuryManager");
+    const treasury = await Factory.deploy();
+    await treasury.deployed();
+
+    // Owner proposes new owner
+    await treasury.transferOwnership(newOwner.address);
+
+    // Attacker cannot accept ownership
+    await expect(treasury.connect(attacker).acceptOwnership()).to.be.reverted;
   });
 });
